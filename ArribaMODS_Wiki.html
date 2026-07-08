@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ariba MODS - Wikipedia</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#f6f6f6;
+  font-family:"Linux Libertine","Georgia","Times New Roman",serif;
+  color:#202122;
+}
+a{color:#0645ad;text-decoration:none}
+a:hover{text-decoration:underline}
+.important{color:#0645ad}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  background:#f8f9fa;border-bottom:1px solid #a2a9b1;
+  padding:6px 18px;font-family:sans-serif;font-size:12px;color:#54595d;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.topbar .lang{display:flex;gap:14px}
+.topbar a{color:#0645ad}
+
+/* ===== HEADER / LOGO ROW ===== */
+.header-row{
+  background:#fff;border-bottom:1px solid #a2a9b1;
+  display:flex;align-items:center;gap:14px;padding:10px 18px;
+}
+.wiki-logo{
+  display:flex;align-items:center;gap:10px;font-family:sans-serif;
+}
+.wiki-logo .globe{
+  width:38px;height:38px;border-radius:50%;
+  background:conic-gradient(from 90deg,#0645ad,#3366cc,#0645ad,#3366cc);
+  flex-shrink:0;
+}
+.wiki-logo .word{line-height:1.05}
+.wiki-logo .word b{font-size:19px;letter-spacing:.5px;color:#000}
+.wiki-logo .word small{font-size:10.5px;color:#54595d;letter-spacing:.5px}
+.search-box{
+  margin-left:auto;display:flex;font-family:sans-serif;
+}
+.search-box input{
+  border:1px solid #a2a9b1;border-right:none;border-radius:2px 0 0 2px;
+  padding:7px 10px;font-size:13px;width:230px;outline:none;
+}
+.search-box button{
+  border:1px solid #a2a9b1;background:#f8f9fa;border-radius:0 2px 2px 0;
+  padding:0 12px;cursor:pointer;
+}
+
+/* ===== LAYOUT ===== */
+.wrap{max-width:1180px;margin:0 auto;display:flex;background:#fff}
+.sidebar{
+  width:180px;flex-shrink:0;padding:16px 10px;font-family:sans-serif;
+  font-size:12.5px;color:#202122;border-right:1px solid #eaecf0;
+}
+.sidebar h4{font-size:12px;color:#54595d;text-transform:uppercase;letter-spacing:.4px;margin:16px 0 6px;font-weight:600}
+.sidebar h4:first-child{margin-top:0}
+.sidebar ul{list-style:none;margin:0;padding:0}
+.sidebar li{margin-bottom:6px}
+.sidebar li:before{content:"";}
+
+.content{flex:1;min-width:0;padding:20px 26px 60px}
+
+/* ===== ARTICLE HEADER ===== */
+.article-title{
+  font-size:28px;border-bottom:3px solid #a2a9b1;padding-bottom:6px;margin:0 0 4px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.tag-badge{
+  font-family:sans-serif;font-size:11px;font-weight:700;color:#fff;
+  background:#0645ad;padding:3px 9px;border-radius:3px;letter-spacing:.3px;
+  vertical-align:middle;
+}
+.subtitle-note{font-size:12.5px;color:#54595d;font-style:italic;margin-bottom:14px}
+
+.toc{
+  display:inline-block;background:#f8f9fa;border:1px solid #a2a9b1;
+  padding:10px 22px 10px 14px;margin:10px 0 18px;font-family:sans-serif;font-size:13px;
+}
+.toc-title{font-weight:700;margin-bottom:6px;text-align:center;font-size:13.5px}
+.toc ol{margin:0;padding-left:20px}
+.toc li{margin-bottom:3px}
+.toc a{color:#0645ad}
+
+/* ===== INFOBOX ===== */
+.infobox{
+  float:right;width:280px;margin:0 0 16px 20px;border:1px solid #a2a9b1;
+  background:#f8f9fa;font-family:sans-serif;font-size:12.5px;
+}
+.infobox .ib-title{
+  background:#eaf0fb;color:#000;font-weight:700;font-size:15px;text-align:center;
+  padding:8px;border-bottom:1px solid #a2a9b1;
+}
+.infobox .ib-sub{text-align:center;font-size:11.5px;color:#54595d;padding:4px 8px 8px;border-bottom:1px solid #a2a9b1;font-style:italic}
+.infobox .ib-logo{
+  text-align:center;padding:14px;border-bottom:1px solid #a2a9b1;
+}
+.infobox .ib-logo .mark{
+  width:70px;height:70px;margin:0 auto;border-radius:16px;
+  background:linear-gradient(135deg,#0645ad,#3366cc);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:22px;font-family:sans-serif;
+}
+.infobox table{width:100%;border-collapse:collapse}
+.infobox td, .infobox th{
+  padding:6px 8px;font-size:12.5px;vertical-align:top;border-top:1px solid #eaecf0;
+}
+.infobox th{text-align:left;color:#54595d;font-weight:600;width:38%}
+.infobox td{color:#202122}
+
+/* ===== ARTICLE BODY ===== */
+.content h2{
+  font-size:20px;border-bottom:1px solid #a2a9b1;padding-bottom:4px;margin:26px 0 10px;
+  font-weight:400;
+}
+.content h3{font-size:16px;margin:18px 0 6px;font-weight:700}
+.content p{font-size:14.5px;line-height:1.7;margin:0 0 12px;text-align:justify}
+.content ul{font-size:14.5px;line-height:1.7;margin:0 0 14px;padding-left:24px}
+.content li{margin-bottom:4px}
+sup.cite{font-size:11px;color:#0645ad}
+
+blockquote.wiki-quote{
+  border-left:3px solid #a2a9b1;margin:12px 0;padding:6px 16px;
+  font-style:italic;color:#3d3d3d;background:#f8f9fa;font-size:14px;
+}
+
+.stub-note{
+  font-family:sans-serif;font-size:12px;color:#54595d;background:#f8f9fa;
+  border:1px solid #eaecf0;padding:10px 14px;margin:24px 0 8px;
+}
+
+/* ===== CATEGORY / TAG STRIP ===== */
+.categories{
+  margin-top:34px;border-top:1px solid #a2a9b1;padding-top:8px;
+  font-family:sans-serif;font-size:12.5px;
+}
+.categories .cat-label{color:#54595d;margin-right:6px}
+.cat-pill{
+  display:inline-block;background:#eaf0fb;color:#0645ad;border:1px solid #cfe0fb;
+  padding:3px 10px;border-radius:2px;margin:2px 4px 2px 0;font-weight:600;
+}
+
+/* ===== FOOTER ===== */
+footer{
+  background:#f8f9fa;border-top:1px solid #a2a9b1;
+  font-family:sans-serif;font-size:11.5px;color:#54595d;
+  text-align:center;padding:16px;
+}
+footer b{color:#0645ad}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span>Este artículo es una entrada generada para el ecosistema comunitario.</span>
+  <span class="lang"><a href="#">Discusión</a><a href="#">Ver historial</a><a href="#">Editar</a></span>
+</div>
+
+<div class="header-row">
+  <div class="wiki-logo">
+    <div class="globe"></div>
+    <div class="word"><b>ARIBA WIKI</b><br><small>LA ENCICLOPEDIA DEL MODDING</small></div>
+  </div>
+  <div class="search-box">
+    <input type="text" value="Ariba MODS" readonly>
+    <button>🔍</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h4>Navegación</h4>
+    <ul>
+      <li><a href="#">Portada</a></li>
+      <li><a href="#">Cambios recientes</a></li>
+      <li><a href="#">Artículo aleatorio</a></li>
+      <li><a href="#">Ayuda</a></li>
+    </ul>
+    <h4>Ecosistema</h4>
+    <ul>
+      <li><a href="index.html">Ariba MODS — Inicio</a></li>
+      <li><a href="BlueGames_Completa.html">BlueGames</a></li>
+      <li><a href="MODS_Noticias.html">Noticias y Publicaciones</a></li>
+    </ul>
+    <h4>Herramientas</h4>
+    <ul>
+      <li><a href="#">Enlaces permanentes</a></li>
+      <li><a href="#">Citar este artículo</a></li>
+    </ul>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <div class="infobox">
+      <div class="ib-title">Ariba MODS</div>
+      <div class="ib-sub">Ecosistema comunitario de modding y aplicaciones</div>
+      <div class="ib-logo"><div class="mark">AM</div></div>
+      <table>
+        <tr><th>Tipo</th><td>Comunidad / plataforma de distribución de mods</td></tr>
+        <tr><th>Sede</th><td>En línea (comunidad hispanohablante)</td></tr>
+        <tr><th>Productos</th><td>BlueGames, Noticias y Publicaciones</td></tr>
+        <tr><th>Idiomas</th><td>Español</td></tr>
+        <tr><th>Eslogan</th><td>«Todo el ecosistema, en un solo lugar»</td></tr>
+        <tr><th>Sitio web</th><td><span class="important">arriba-mods (proyecto propio)</span></td></tr>
+      </table>
+    </div>
+
+    <h1 class="article-title">Ariba MODS <span class="tag-badge">Ariba MODS</span></h1>
+    <p class="subtitle-note">De Ariba Wiki, la enciclopedia libre del ecosistema.</p>
+
+    <div class="toc">
+      <div class="toc-title">Contenido</div>
+      <ol>
+        <li><a href="#historia">Historia</a></li>
+        <li><a href="#servicios">Servicios y productos</a>
+          <ol>
+            <li><a href="#bluegames">2.1 BlueGames</a></li>
+            <li><a href="#noticias">2.2 Noticias y Publicaciones</a></li>
+          </ol>
+        </li>
+        <li><a href="#comunidad">Comunidad</a></li>
+        <li><a href="#vease">Véase también</a></li>
+        <li><a href="#referencias">Referencias</a></li>
+      </ol>
+    </div>
+
+    <p>
+      <b>Ariba MODS</b> es un <span class="important">ecosistema comunitario</span> hispanohablante
+      dedicado a la distribución de aplicaciones modificadas, contenido de <span class="important">modding</span>
+      y noticias relacionadas con videojuegos. El proyecto reúne distintos servicios bajo una misma identidad,
+      entre ellos <span class="important">BlueGames</span>, un catálogo de juegos y aplicaciones modificadas, y
+      <span class="important">Noticias y Publicaciones</span>, un muro social donde los administradores
+      comparten avisos y actualizaciones a la comunidad.
+    </p>
+    <p>
+      El proyecto se caracteriza por un diseño visual propio, con un esquema de color azul
+      corporativo y una estructura de navegación compartida entre todas sus páginas, lo que
+      refuerza la idea de un <span class="important">ecosistema unificado</span> más que de sitios
+      independientes.
+    </p>
+
+    <h2 id="historia">Historia</h2>
+    <p>
+      Ariba MODS nació como una iniciativa independiente para centralizar en un solo lugar el
+      acceso a aplicaciones modificadas y las novedades del ecosistema, evitando la dispersión
+      de enlaces en distintas fuentes. Con el tiempo, el proyecto incorporó un muro de
+      <span class="important">publicaciones</span> con inicio de sesión mediante
+      <span class="important">Google</span>, restringiendo la publicación de contenido a un grupo
+      reducido de <span class="important">administradores verificados</span>, identificados con una
+      insignia distintiva junto a su nombre.
+    </p>
+
+    <h2 id="servicios">Servicios y productos</h2>
+    <p>
+      El ecosistema se organiza en distintos módulos, accesibles desde una barra de navegación
+      común presente en todas las páginas del proyecto.
+    </p>
+
+    <h3 id="bluegames">BlueGames</h3>
+    <p>
+      <span class="important">BlueGames</span> es la sección dedicada al catálogo de juegos y
+      aplicaciones. Cada entrada incluye una ficha con imagen, descripción, desarrollador original
+      y un enlace directo de descarga alojado en servicios externos como
+      <span class="important">Mediafire</span>.
+    </p>
+
+    <h3 id="noticias">Noticias y Publicaciones</h3>
+    <p>
+      Es el muro social del ecosistema. Permite a los administradores compartir texto e imágenes
+      en formato de publicación, mientras que el resto de usuarios puede interactuar mediante
+      <span class="important">«me gusta»</span> (representado con el ícono 👍) y comentarios. El
+      acceso para publicar está limitado exclusivamente a las cuentas de administrador,
+      verificadas mediante <span class="important">Firebase Authentication</span> con inicio de
+      sesión de Google.
+    </p>
+
+    <blockquote class="wiki-quote">
+      «Un ecosistema, no una colección de páginas sueltas.» — Principio de diseño del proyecto Ariba MODS.
+    </blockquote>
+
+    <h2 id="comunidad">Comunidad</h2>
+    <p>
+      La comunidad de Ariba MODS interactúa principalmente a través del muro de publicaciones,
+      donde puede comentar y reaccionar a los anuncios oficiales. El modelo de
+      <span class="important">administradores verificados</span> busca mantener la fiabilidad de la
+      información publicada, evitando que cuentas no autorizadas generen contenido a nombre del
+      proyecto.
+    </p>
+
+    <h2 id="vease">Véase también</h2>
+    <ul>
+      <li><a href="BlueGames_Completa.html">BlueGames</a></li>
+      <li><a href="MODS_Noticias.html">Noticias y Publicaciones</a></li>
+      <li><span class="important">Modding de videojuegos</span></li>
+    </ul>
+
+    <h2 id="referencias">Referencias</h2>
+    <ul>
+      <li><sup class="cite">[1]</sup> Página oficial de Noticias y Publicaciones de Ariba MODS.</li>
+      <li><sup class="cite">[2]</sup> Catálogo BlueGames — sección de juegos destacados.</li>
+    </ul>
+
+    <div class="stub-note">
+      📝 Este artículo forma parte del contenido propio del ecosistema Ariba MODS y fue redactado
+      con fines informativos/estéticos al estilo enciclopédico. No pertenece ni está afiliado a la
+      Fundación Wikimedia.
+    </div>
+
+    <div class="categories">
+      <span class="cat-label">Categorías:</span>
+      <span class="cat-pill">Ariba MODS</span>
+      <span class="cat-pill">BlueGames</span>
+      <span class="cat-pill">Modding</span>
+      <span class="cat-pill">Comunidades en español</span>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Contenido generado para el ecosistema <b>Ariba MODS</b> · Estilo inspirado en Wikipedia, sin afiliación oficial.
+</footer>
+
+</body>
+</html>
