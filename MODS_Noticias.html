@@ -205,6 +205,11 @@ footer b{color:#1e63ff}
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+  import {
+    getFirestore, collection, query, orderBy, onSnapshot,
+    addDoc, updateDoc, doc, arrayUnion, increment, serverTimestamp,
+    getDocs, limit
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   // Configuración de tu proyecto Firebase (arriba-mods)
   const firebaseConfig = {
@@ -220,39 +225,73 @@ footer b{color:#1e63ff}
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
   const googleProvider = new GoogleAuthProvider();
+  const db = getFirestore(fbApp);
+  const postsCol = collection(db, "posts");
 
 (function(){
   var DEFAULT_AVATAR = "data:image/svg+xml;utf8,"+encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%231e63ff"/><text x="50%" y="55%" font-size="34" fill="white" text-anchor="middle" font-family="Arial">🙂</text></svg>'
   );
 
-  var posts = [
-    {
-      id: 1,
-      name: "Ariba MODS",
-      avatar: DEFAULT_AVATAR,
-      text: "¡Bienvenidos al muro de Noticias y Publicaciones! Aquí compartiremos actualizaciones de BlueGames y del resto del ecosistema.",
-      image: "",
-      time: "Hace 2 días",
-      likes: 12,
-      liked: false,
-      verified: true,
-      comments: [
-        { name: "Jugador01", text: "¡Genial, esperaba esto!" }
-      ]
-    },
-    {
-      id: 2,
-      name: "Frojo Apps",
-      avatar: DEFAULT_AVATAR,
-      text: "Nueva actualización disponible en BlueGames. ¡Revisa la sección de juegos!",
-      image: "",
-      time: "Hace 5 horas",
-      likes: 4,
-      liked: false,
-      comments: []
-    }
-  ];
+  var posts = [];
+  var likedLocally = JSON.parse(localStorage.getItem("mods_liked_posts") || "[]");
+
+  // Publicaciones de ejemplo: solo se crean una vez, la primera vez que
+  // alguien abre la página y la colección de Firestore está vacía.
+  function seedIfEmpty(){
+    getDocs(query(postsCol, limit(1))).then(function(snap){
+      if(!snap.empty) return;
+      addDoc(postsCol, {
+        name: "Ariba MODS",
+        avatar: DEFAULT_AVATAR,
+        text: "¡Bienvenidos al muro de Noticias y Publicaciones! Aquí compartiremos actualizaciones de BlueGames y del resto del ecosistema.",
+        image: "",
+        likes: 12,
+        verified: true,
+        comments: [{ name: "Jugador01", text: "¡Genial, esperaba esto!" }],
+        createdAt: serverTimestamp()
+      });
+      addDoc(postsCol, {
+        name: "Frojo Apps",
+        avatar: DEFAULT_AVATAR,
+        text: "Nueva actualización disponible en BlueGames. ¡Revisa la sección de juegos!",
+        image: "",
+        likes: 4,
+        verified: false,
+        comments: [],
+        createdAt: serverTimestamp()
+      });
+    }).catch(function(err){ console.error("Error creando publicaciones de ejemplo:", err); });
+  }
+
+  function formatTime(ts){
+    if(!ts || !ts.toDate) return "Justo ahora";
+    return ts.toDate().toLocaleString("es-ES", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function listenToPosts(){
+    var q = query(postsCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, function(snapshot){
+      posts = snapshot.docs.map(function(d){
+        var data = d.data();
+        return {
+          id: d.id,
+          name: data.name,
+          avatar: data.avatar || DEFAULT_AVATAR,
+          text: data.text,
+          image: data.image || "",
+          time: formatTime(data.createdAt),
+          likes: data.likes || 0,
+          liked: likedLocally.indexOf(d.id) !== -1,
+          verified: !!data.verified,
+          comments: data.comments || []
+        };
+      });
+      renderFeed();
+    }, function(err){
+      console.error("Error escuchando publicaciones:", err);
+    });
+  }
 
   var avatarData = "";
   var postImgData = "";
@@ -316,7 +355,7 @@ footer b{color:#1e63ff}
 
   function renderFeed(){
     feedEl.innerHTML = "";
-    posts.slice().reverse().forEach(function(post){
+    posts.forEach(function(post){
       var el = document.createElement("div");
       el.className = "post";
 
@@ -434,38 +473,48 @@ footer b{color:#1e63ff}
       var text = textInput.value.trim();
       if(!text){ textInput.focus(); return; }
 
-      posts.push({
-        id: Date.now(),
+      publishBtn.disabled = true;
+      addDoc(postsCol, {
         name: name,
         avatar: avatarData || DEFAULT_AVATAR,
         text: text,
-        image: postImgData,
-        time: timeAgoLabel(),
+        image: postImgData || "",
         likes: 0,
-        liked: false,
         verified: true,
-        comments: []
+        comments: [],
+        createdAt: serverTimestamp()
+      }).catch(function(err){
+        console.error("Error publicando:", err);
+        alert("No se pudo publicar: " + err.message);
+      }).finally(function(){
+        publishBtn.disabled = false;
       });
 
       textInput.value = "";
       postImgData = "";
       postImgPreview.style.display = "none";
       postImgInput.value = "";
-      renderFeed();
     });
 
     feedEl.addEventListener("click", function(e){
       var btn = e.target.closest("button");
       if(!btn) return;
       var action = btn.getAttribute("data-action");
-      var id = Number(btn.getAttribute("data-id"));
+      var id = btn.getAttribute("data-id");
       var post = findPost(id);
       if(!post) return;
 
       if(action === "like"){
-        post.liked = !post.liked;
-        post.likes += post.liked ? 1 : -1;
-        renderFeed();
+        var willLike = !post.liked;
+        var idx = likedLocally.indexOf(id);
+        if(willLike && idx === -1) likedLocally.push(id);
+        if(!willLike && idx !== -1) likedLocally.splice(idx, 1);
+        localStorage.setItem("mods_liked_posts", JSON.stringify(likedLocally));
+
+        updateDoc(doc(db, "posts", id), {
+          likes: increment(willLike ? 1 : -1)
+        }).catch(function(err){ console.error("Error al dar like:", err); });
+
       } else if(action === "toggle-comments"){
         var box = document.getElementById("comments-" + id);
         box.classList.toggle("open");
@@ -473,14 +522,15 @@ footer b{color:#1e63ff}
         var input = document.getElementById("comment-input-" + id);
         var val = input.value.trim();
         if(!val) return;
-        post.comments.push({ name: nameInput.value.trim() || "Invitado", text: val });
-        renderFeed();
-        var box = document.getElementById("comments-" + id);
-        if(box) box.classList.add("open");
+        input.value = "";
+        updateDoc(doc(db, "posts", id), {
+          comments: arrayUnion({ name: nameInput.value.trim() || "Invitado", text: val })
+        }).catch(function(err){ console.error("Error al comentar:", err); });
       }
     });
 
-    renderFeed();
+    seedIfEmpty();
+    listenToPosts();
   });
 })();
 </script>
