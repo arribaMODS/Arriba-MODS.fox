@@ -205,11 +205,6 @@ footer b{color:#1e63ff}
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-  import {
-    getFirestore, collection, query, orderBy, onSnapshot,
-    addDoc, updateDoc, doc, arrayUnion, increment, serverTimestamp,
-    getDocs, limit
-  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   // Configuración de tu proyecto Firebase (arriba-mods)
   const firebaseConfig = {
@@ -225,72 +220,57 @@ footer b{color:#1e63ff}
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
   const googleProvider = new GoogleAuthProvider();
-  const db = getFirestore(fbApp);
-  const postsCol = collection(db, "posts");
 
 (function(){
   var DEFAULT_AVATAR = "data:image/svg+xml;utf8,"+encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%231e63ff"/><text x="50%" y="55%" font-size="34" fill="white" text-anchor="middle" font-family="Arial">🙂</text></svg>'
   );
 
-  var posts = [];
-  var likedLocally = JSON.parse(localStorage.getItem("mods_liked_posts") || "[]");
+  var STORAGE_KEY = "mods_posts_v1";
 
-  // Publicaciones de ejemplo: solo se crean una vez, la primera vez que
-  // alguien abre la página y la colección de Firestore está vacía.
-  function seedIfEmpty(){
-    getDocs(query(postsCol, limit(1))).then(function(snap){
-      if(!snap.empty) return;
-      addDoc(postsCol, {
+  var posts = loadPosts();
+
+  function loadPosts(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        return JSON.parse(raw);
+      }
+    }catch(e){ console.error("Error leyendo publicaciones guardadas:", e); }
+
+    // Publicaciones de ejemplo, solo se usan la primera vez (cuando no hay nada guardado)
+    return [
+      {
+        id: "1",
         name: "Ariba MODS",
         avatar: DEFAULT_AVATAR,
         text: "¡Bienvenidos al muro de Noticias y Publicaciones! Aquí compartiremos actualizaciones de BlueGames y del resto del ecosistema.",
         image: "",
+        time: "Hace 2 días",
         likes: 12,
+        liked: false,
         verified: true,
-        comments: [{ name: "Jugador01", text: "¡Genial, esperaba esto!" }],
-        createdAt: serverTimestamp()
-      });
-      addDoc(postsCol, {
+        comments: [{ name: "Jugador01", text: "¡Genial, esperaba esto!" }]
+      },
+      {
+        id: "2",
         name: "Frojo Apps",
         avatar: DEFAULT_AVATAR,
         text: "Nueva actualización disponible en BlueGames. ¡Revisa la sección de juegos!",
         image: "",
+        time: "Hace 5 horas",
         likes: 4,
+        liked: false,
         verified: false,
-        comments: [],
-        createdAt: serverTimestamp()
-      });
-    }).catch(function(err){ console.error("Error creando publicaciones de ejemplo:", err); });
+        comments: []
+      }
+    ];
   }
 
-  function formatTime(ts){
-    if(!ts || !ts.toDate) return "Justo ahora";
-    return ts.toDate().toLocaleString("es-ES", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
-  }
-
-  function listenToPosts(){
-    var q = query(postsCol, orderBy("createdAt", "desc"));
-    onSnapshot(q, function(snapshot){
-      posts = snapshot.docs.map(function(d){
-        var data = d.data();
-        return {
-          id: d.id,
-          name: data.name,
-          avatar: data.avatar || DEFAULT_AVATAR,
-          text: data.text,
-          image: data.image || "",
-          time: formatTime(data.createdAt),
-          likes: data.likes || 0,
-          liked: likedLocally.indexOf(d.id) !== -1,
-          verified: !!data.verified,
-          comments: data.comments || []
-        };
-      });
-      renderFeed();
-    }, function(err){
-      console.error("Error escuchando publicaciones:", err);
-    });
+  function savePosts(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+    }catch(e){ console.error("Error guardando publicaciones:", e); }
   }
 
   var avatarData = "";
@@ -473,22 +453,20 @@ footer b{color:#1e63ff}
       var text = textInput.value.trim();
       if(!text){ textInput.focus(); return; }
 
-      publishBtn.disabled = true;
-      addDoc(postsCol, {
+      posts.unshift({
+        id: String(Date.now()),
         name: name,
         avatar: avatarData || DEFAULT_AVATAR,
         text: text,
         image: postImgData || "",
+        time: timeAgoLabel(),
         likes: 0,
+        liked: false,
         verified: true,
-        comments: [],
-        createdAt: serverTimestamp()
-      }).catch(function(err){
-        console.error("Error publicando:", err);
-        alert("No se pudo publicar: " + err.message);
-      }).finally(function(){
-        publishBtn.disabled = false;
+        comments: []
       });
+      savePosts();
+      renderFeed();
 
       textInput.value = "";
       postImgData = "";
@@ -505,16 +483,10 @@ footer b{color:#1e63ff}
       if(!post) return;
 
       if(action === "like"){
-        var willLike = !post.liked;
-        var idx = likedLocally.indexOf(id);
-        if(willLike && idx === -1) likedLocally.push(id);
-        if(!willLike && idx !== -1) likedLocally.splice(idx, 1);
-        localStorage.setItem("mods_liked_posts", JSON.stringify(likedLocally));
-
-        updateDoc(doc(db, "posts", id), {
-          likes: increment(willLike ? 1 : -1)
-        }).catch(function(err){ console.error("Error al dar like:", err); });
-
+        post.liked = !post.liked;
+        post.likes += post.liked ? 1 : -1;
+        savePosts();
+        renderFeed();
       } else if(action === "toggle-comments"){
         var box = document.getElementById("comments-" + id);
         box.classList.toggle("open");
@@ -523,14 +495,15 @@ footer b{color:#1e63ff}
         var val = input.value.trim();
         if(!val) return;
         input.value = "";
-        updateDoc(doc(db, "posts", id), {
-          comments: arrayUnion({ name: nameInput.value.trim() || "Invitado", text: val })
-        }).catch(function(err){ console.error("Error al comentar:", err); });
+        post.comments.push({ name: nameInput.value.trim() || "Invitado", text: val });
+        savePosts();
+        renderFeed();
+        var box2 = document.getElementById("comments-" + id);
+        if(box2) box2.classList.add("open");
       }
     });
 
-    seedIfEmpty();
-    listenToPosts();
+    renderFeed();
   });
 })();
 </script>
