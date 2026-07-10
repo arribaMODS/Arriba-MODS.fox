@@ -42,6 +42,25 @@ nav a{color:white;text-decoration:none;margin:0 15px}
 }
 .card h3{font-size:13.5px;margin:8px 0 2px;line-height:1.25;color:#0f172a}
 .card .game-dev{font-size:10.5px;color:#64748b;margin:0 0 4px}
+/* ===== Estilo tipo "Google Play Store" ===== */
+#juegos .card{border-radius:16px}
+#juegos .card img{border-radius:14px}
+#juegos .card:not(:has(img))::before{border-radius:14px}
+.gp-rating{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#5f6368;margin:0 0 5px}
+.gp-rating .gp-star{color:#f2b01e}
+.gp-rating .gp-dot{opacity:.6}
+#juegos .card a.download,
+.gm-download-btn{
+  background:#01875f !important;
+  border-radius:20px !important;
+  font-weight:700 !important;
+  font-size:11.5px !important;
+  letter-spacing:.3px;
+  text-transform:uppercase;
+  padding:8px 18px !important;
+}
+#juegos .card a.download:hover,
+.gm-download-btn:hover{ background:#026e4c !important; }
 .card p{
   font-size:11.5px;
   color:#475569;
@@ -732,6 +751,26 @@ body { padding-bottom: 55px; }
 </script>
 
 
+<script>
+// Agrega una línea de calificación estilo "Google Play Store" (★ x.x · descargas) a cada tarjeta
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('#juegos .card[data-game-id]').forEach(function(card){
+    if(card.querySelector('.gp-rating')) return;
+    var devP = card.querySelector('p.game-dev');
+    if(!devP) return;
+    var seed = 0;
+    var id = card.getAttribute('data-game-id') || '';
+    for(var i=0;i<id.length;i++){ seed += id.charCodeAt(i); }
+    var rating = (3.9 + (seed % 10) / 10).toFixed(1);
+    var downloads = ['1K+','5K+','10K+','50K+','100K+','500K+'][seed % 6];
+    var row = document.createElement('p');
+    row.className = 'gp-rating';
+    row.innerHTML = '<span class="gp-star">★</span> ' + rating + ' <span class="gp-dot">·</span> ' + downloads + ' <span class="gp-dot">·</span> Gratis';
+    devP.after(row);
+  });
+});
+</script>
+
 <!-- ===================== FIREBASE: LOGIN GOOGLE + PERFIL + LIKES + COMENTARIOS + SUSCRIPTORES ===================== -->
 <!--
   IMPORTANTE PARA RALURO:
@@ -740,11 +779,18 @@ body { padding-bottom: 55px; }
   3) Activa Firestore Database (modo producción) y Storage
   4) Copia tu configuración (Project settings > General > tus apps > SDK setup) y pégala abajo en FIREBASE_CONFIG
   5) En Firestore, reglas mínimas recomendadas (ajusta a tu gusto):
-     match /users/{uid} { allow read: if true; allow write: if request.auth.uid == uid; }
+     match /users/{uid} {
+       allow read: if true;
+       allow write: if request.auth.uid == uid
+                    || request.auth.token.email == 'raulersito7@gmail.com';
+     }
      match /games/{gameId}/likes/{uid} { allow read: if true; allow write: if request.auth.uid == uid; }
      match /games/{gameId}/comments/{id} { allow read: if true; allow create: if request.auth != null; }
      match /games/{gameId}/subscribers/{uid} { allow read: if true; allow write: if request.auth.uid == uid; }
-  Sin este paso, los botones de login/like/comentar mostrarán un aviso pidiendo configurar Firebase.
+  NOTA VIP/MONEDAS: la regla de "users" ahora también deja que la cuenta administradora
+  (raulersito7@gmail.com) escriba en el perfil de cualquier usuario, para poder regalar
+  monedas y VIP desde el panel de administración. Sin este paso, los botones de
+  login/like/comentar/VIP mostrarán un aviso pidiendo configurar Firebase.
 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -931,6 +977,149 @@ body { padding-bottom: 55px; }
   transition:all .3s ease;
 }
 #fb-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ===== VIP / MONEDAS / ADMIN ===== */
+.vip-frame{
+  border:3px solid transparent !important;
+  background:
+    linear-gradient(#0f172a,#0f172a) padding-box,
+    linear-gradient(135deg,#fff3b0,#e8b923,#fff3b0,#b8860b) border-box;
+  box-shadow:0 0 10px rgba(232,185,35,.75), 0 0 2px rgba(255,255,255,.6) inset;
+}
+#fb-user-chip .vip-badge{
+  display:none;
+  font-size:9.5px;
+  font-weight:800;
+  color:#3a2900;
+  background:linear-gradient(135deg,#fff3b0,#e8b923);
+  border-radius:6px;
+  padding:1px 5px;
+  margin-left:2px;
+  letter-spacing:.5px;
+}
+#fb-user-chip.is-vip .vip-badge{ display:inline-block; }
+#fb-menu-name .vip-badge-menu{
+  display:none;
+  font-size:9.5px;
+  font-weight:800;
+  color:#3a2900;
+  background:linear-gradient(135deg,#fff3b0,#e8b923);
+  border-radius:6px;
+  padding:1px 6px;
+  margin-left:6px;
+  letter-spacing:.5px;
+  vertical-align:middle;
+}
+#fb-user-menu.is-vip .vip-badge-menu{ display:inline-block; }
+
+/* Tarjeta de monedas, junto a la barra de usuario */
+#coins-chip{
+  display:none;
+  align-items:center;
+  gap:6px;
+  background:linear-gradient(135deg,#1e293b,#0f172a);
+  border:1px solid #334155;
+  border-radius:30px;
+  padding:6px 14px 6px 10px;
+  cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);
+  font-family:'Segoe UI',sans-serif;
+}
+#coins-chip .coin-ic{
+  width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ffe98a,#e8b923 70%,#a8760f);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;color:#5c3d00;
+  box-shadow:0 0 4px rgba(232,185,35,.8);
+}
+#coins-chip span{ color:#fff; font-size:13px; font-weight:700; }
+#coins-chip:hover{ box-shadow:0 6px 18px rgba(0,0,0,.4); }
+
+/* Modal tienda VIP */
+#vip-store-modal{
+  position:fixed; inset:0; z-index:10050;
+  display:none; align-items:center; justify-content:center;
+  padding:20px;
+}
+#vip-store-modal.open{ display:flex; }
+#vip-store-modal .vip-backdrop{
+  position:absolute; inset:0; background:rgba(5,8,20,.72); backdrop-filter:blur(3px);
+}
+#vip-store-modal .vip-box{
+  position:relative; z-index:1;
+  width:100%; max-width:400px;
+  background:linear-gradient(160deg,#0f172a,#1a1035 60%,#0f172a);
+  border:1px solid #3a2b6e;
+  border-radius:18px;
+  padding:26px 24px 22px;
+  color:#fff;
+  font-family:'Segoe UI',sans-serif;
+  box-shadow:0 24px 60px rgba(0,0,0,.55);
+  text-align:center;
+}
+#vip-store-modal .vip-close{
+  position:absolute; top:12px; right:14px;
+  background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;
+}
+#vip-store-modal .vip-crown{
+  width:64px; height:64px; border-radius:50%; margin:0 auto 10px;
+  background:radial-gradient(circle at 35% 30%,#fff3b0,#e8b923 70%,#a8760f);
+  display:flex; align-items:center; justify-content:center; font-size:30px;
+  box-shadow:0 0 22px rgba(232,185,35,.6);
+}
+#vip-store-modal h3{ margin:4px 0 6px; font-size:20px; }
+#vip-store-modal p.vip-desc{ color:#cbd5e1; font-size:13.5px; margin:0 0 16px; line-height:1.5; }
+#vip-store-modal ul.vip-perks{ text-align:left; list-style:none; padding:0; margin:0 0 18px; font-size:13px; color:#e2e8f0; }
+#vip-store-modal ul.vip-perks li{ padding:5px 0; display:flex; gap:8px; align-items:center; }
+#vip-store-modal .vip-price{
+  font-size:22px; font-weight:800; color:#ffd35c; margin:6px 0 16px;
+}
+#vip-buy-btn{
+  width:100%; padding:12px; border:none; border-radius:10px;
+  background:linear-gradient(135deg,#e8b923,#b8860b);
+  color:#2b1c00; font-weight:800; font-size:14.5px; cursor:pointer;
+  box-shadow:0 6px 18px rgba(232,185,35,.35);
+}
+#vip-buy-btn:disabled{ opacity:.5; cursor:not-allowed; }
+#vip-buy-btn.is-vip-owned{ background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+#vip-store-modal .vip-balance{ font-size:12px; color:#94a3b8; margin-top:10px; }
+
+/* Panel de administrador */
+#admin-panel{
+  display:none;
+  position:fixed; bottom:16px; right:16px; z-index:9998;
+  width:270px;
+  background:linear-gradient(160deg,#1a1035,#0f172a);
+  border:1px solid #6d28d9;
+  border-radius:16px;
+  padding:14px 14px 16px;
+  color:#fff;
+  font-family:'Segoe UI',sans-serif;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+#admin-panel.open{ display:block; }
+#admin-panel h4{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:6px; }
+#admin-panel input{
+  width:100%; box-sizing:border-box; padding:8px 10px; margin:5px 0;
+  border-radius:8px; border:1px solid #334155; background:#0b1220; color:#fff; font-size:12.5px;
+}
+#admin-panel .admin-row{ display:flex; gap:6px; }
+#admin-panel .admin-row input{ flex:1; }
+#admin-panel button{
+  border:none; border-radius:8px; padding:8px 10px; font-size:12px; font-weight:700; cursor:pointer;
+  margin-top:5px; width:100%;
+}
+#admin-coins-btn{ background:#2563eb; color:#fff; }
+#admin-vip-btn{ background:linear-gradient(135deg,#e8b923,#b8860b); color:#2b1c00; }
+#admin-result{ font-size:11.5px; color:#a5b4fc; margin-top:6px; min-height:14px; }
+#admin-toggle-btn{
+  display:none;
+  position:fixed; bottom:16px; right:16px; z-index:9997;
+  background:linear-gradient(135deg,#6d28d9,#4c1d95);
+  color:#fff; border:none; border-radius:30px;
+  padding:10px 16px; font-size:12.5px; font-weight:700; cursor:pointer;
+  box-shadow:0 8px 22px rgba(0,0,0,.4);
+}
 </style>
 
 <div id="fb-auth-bar">
@@ -941,14 +1130,16 @@ body { padding-bottom: 55px; }
   <div id="fb-user-chip" onclick="fbToggleMenu()" style="position:relative;">
     <img id="fb-user-avatar" src="" alt="Perfil">
     <span id="fb-user-name"></span>
+    <span class="vip-badge">VIP</span>
     <div id="fb-user-menu">
       <div class="fb-menu-header">
         <img id="fb-menu-avatar" src="" alt="Perfil">
         <div>
-          <strong id="fb-menu-name"></strong>
+          <strong id="fb-menu-name">&nbsp;</strong>
           <span id="fb-menu-email"></span>
         </div>
       </div>
+      <button class="fb-menu-item" onclick="event.stopPropagation();vipOpenStore();">👑 Tienda VIP</button>
       <label class="fb-menu-item" style="cursor:pointer;">
         📷 Subir foto de perfil
         <input type="file" id="fb-photo-input" accept="image/*" style="display:none;">
@@ -956,9 +1147,45 @@ body { padding-bottom: 55px; }
       <button class="fb-menu-item danger" onclick="fbLogout()">🚪 Cerrar sesión</button>
     </div>
   </div>
+  <div id="coins-chip" onclick="vipOpenStore()">
+    <div class="coin-ic">$</div>
+    <span id="coins-amount">0</span>
+  </div>
 </div>
 
 <div id="fb-toast"></div>
+
+<!-- ===== TIENDA VIP ===== -->
+<div id="vip-store-modal">
+  <div class="vip-backdrop" onclick="vipCloseStore()"></div>
+  <div class="vip-box">
+    <button class="vip-close" onclick="vipCloseStore()">✕</button>
+    <div class="vip-crown">👑</div>
+    <h3>Membresía VIP</h3>
+    <p class="vip-desc">Consigue un marco dorado exclusivo en tu foto de perfil y destaca en toda la comunidad de BlueGames.</p>
+    <ul class="vip-perks">
+      <li>✨ Marco dorado animado en tu avatar</li>
+      <li>👑 Insignia VIP junto a tu nombre</li>
+      <li>🎮 Reconocimiento especial en comentarios</li>
+    </ul>
+    <div class="vip-price">💰 300 monedas</div>
+    <button id="vip-buy-btn" onclick="vipPurchase()">Comprar VIP</button>
+    <div class="vip-balance">Tu saldo: <span id="vip-balance-amount">0</span> monedas</div>
+  </div>
+</div>
+
+<!-- ===== PANEL DE ADMINISTRADOR ===== -->
+<button id="admin-toggle-btn" onclick="adminTogglePanel()">🛠️ Panel Admin</button>
+<div id="admin-panel">
+  <h4>🛠️ Panel de administrador</h4>
+  <input type="email" id="admin-target-email" placeholder="Correo del usuario">
+  <div class="admin-row">
+    <input type="number" id="admin-coins-input" placeholder="Cantidad" min="1">
+    <button id="admin-coins-btn" style="width:auto;flex-shrink:0;" onclick="adminGiveCoins()">💰 Regalar</button>
+  </div>
+  <button id="admin-vip-btn" onclick="adminGiveVip()">👑 Regalar VIP</button>
+  <div id="admin-result"></div>
+</div>
 
 <script>
 (function(){
@@ -1231,6 +1458,238 @@ body { padding-bottom: 55px; }
 })();
 </script>
 
+<!-- ===================== SISTEMA DE MONEDAS, VIP Y PANEL DE ADMINISTRADOR ===================== -->
+<!--
+  Cómo funciona:
+  - Cada usuario tiene en Firestore (colección "users") los campos "coins" (número) y "vip" (booleano).
+  - La tienda VIP permite comprar el VIP por 300 monedas. Al comprarlo se resta el costo y se activa
+    el marco dorado alrededor de la foto de perfil (clase CSS .vip-frame) + una insignia "VIP".
+  - La cuenta administradora (raulersito7@gmail.com) ve un botón flotante "Panel Admin" desde el cual
+    puede buscar a cualquier usuario por su correo y regalarle monedas y/o VIP directamente.
+  - Recuerda actualizar las reglas de Firestore como se indica más arriba para que el administrador
+    pueda escribir en el perfil de otros usuarios.
+-->
+<script>
+(function(){
+  var ADMIN_EMAIL = 'raulersito7@gmail.com';
+  var VIP_PRICE = 300;
+  var auth, db, currentUser = null, unsubscribeUserDoc = null;
+
+  function fbReady(){
+    try{
+      if(typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return false;
+      auth = firebase.auth();
+      db = firebase.firestore();
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function showToast(msg){
+    var t = document.getElementById('fb-toast');
+    if(!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+
+  function applyVipUI(isVip){
+    var chip = document.getElementById('fb-user-chip');
+    var menu = document.getElementById('fb-user-menu');
+    var avatar = document.getElementById('fb-user-avatar');
+    var menuAvatar = document.getElementById('fb-menu-avatar');
+    if(chip) chip.classList.toggle('is-vip', !!isVip);
+    if(menu) menu.classList.toggle('is-vip', !!isVip);
+    if(avatar) avatar.classList.toggle('vip-frame', !!isVip);
+    if(menuAvatar) menuAvatar.classList.toggle('vip-frame', !!isVip);
+  }
+
+  function applyCoinsUI(coins, isVip){
+    var el = document.getElementById('coins-amount');
+    var bal = document.getElementById('vip-balance-amount');
+    if(el) el.textContent = coins;
+    if(bal) bal.textContent = coins;
+    var buyBtn = document.getElementById('vip-buy-btn');
+    if(buyBtn){
+      if(isVip){
+        buyBtn.textContent = 'Ya eres VIP ✔';
+        buyBtn.disabled = true;
+        buyBtn.classList.add('is-vip-owned');
+      }else{
+        buyBtn.textContent = 'Comprar VIP';
+        buyBtn.disabled = coins < VIP_PRICE;
+        buyBtn.classList.remove('is-vip-owned');
+      }
+    }
+  }
+
+  function listenToUserDoc(uid){
+    if(unsubscribeUserDoc){ unsubscribeUserDoc(); unsubscribeUserDoc = null; }
+    unsubscribeUserDoc = db.collection('users').doc(uid).onSnapshot(function(doc){
+      var data = doc.exists ? (doc.data() || {}) : {};
+      var coins = typeof data.coins === 'number' ? data.coins : 0;
+      var vip = !!data.vip;
+      applyVipUI(vip);
+      applyCoinsUI(coins, vip);
+    }, function(err){ console.error('Error leyendo perfil:', err); });
+  }
+
+  function ensureUserDoc(user){
+    var ref = db.collection('users').doc(user.uid);
+    ref.get().then(function(doc){
+      if(!doc.exists){
+        ref.set({
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          coins: 0,
+          vip: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
+      }else{
+        var data = doc.data() || {};
+        var patch = {};
+        if(typeof data.coins !== 'number') patch.coins = 0;
+        if(typeof data.vip !== 'boolean') patch.vip = false;
+        if(Object.keys(patch).length) ref.set(patch, {merge:true});
+      }
+    }).catch(function(err){ console.error(err); });
+  }
+
+  window.vipOpenStore = function(){
+    if(!fbReady()){ showToast('⚠️ Conecta tu proyecto Firebase para activar la tienda VIP.'); return; }
+    if(!currentUser){ showToast('Inicia sesión con Google para acceder a la tienda VIP.'); return; }
+    document.getElementById('vip-store-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    var menu = document.getElementById('fb-user-menu');
+    if(menu) menu.classList.remove('open');
+  };
+
+  window.vipCloseStore = function(){
+    document.getElementById('vip-store-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  window.vipPurchase = function(){
+    if(!fbReady() || !currentUser) return;
+    var ref = db.collection('users').doc(currentUser.uid);
+    db.runTransaction(function(t){
+      return t.get(ref).then(function(doc){
+        var data = doc.data() || {};
+        var coins = typeof data.coins === 'number' ? data.coins : 0;
+        if(data.vip){ throw new Error('ALREADY_VIP'); }
+        if(coins < VIP_PRICE){ throw new Error('NOT_ENOUGH_COINS'); }
+        t.update(ref, { coins: coins - VIP_PRICE, vip: true });
+      });
+    }).then(function(){
+      showToast('¡Felicidades! Ahora eres VIP 👑');
+    }).catch(function(err){
+      var msg = err && err.message;
+      if(msg === 'NOT_ENOUGH_COINS'){
+        showToast('No tienes suficientes monedas. Necesitas ' + VIP_PRICE + ' monedas.');
+      }else if(msg === 'ALREADY_VIP'){
+        showToast('Ya eres VIP.');
+      }else{
+        console.error(err);
+        showToast('No se pudo completar la compra. Intenta de nuevo.');
+      }
+    });
+  };
+
+  /* ---------- Panel de administrador ---------- */
+  window.adminTogglePanel = function(){
+    var panel = document.getElementById('admin-panel');
+    if(panel) panel.classList.toggle('open');
+  };
+
+  function findUserByEmail(email){
+    return db.collection('users').where('email','==', email).limit(1).get().then(function(snap){
+      if(snap.empty) return null;
+      var d = snap.docs[0];
+      return { id: d.id, ref: d.ref, data: d.data() };
+    });
+  }
+
+  window.adminGiveCoins = function(){
+    if(!fbReady() || !currentUser || currentUser.email !== ADMIN_EMAIL) return;
+    var emailInput = document.getElementById('admin-target-email');
+    var amountInput = document.getElementById('admin-coins-input');
+    var resultEl = document.getElementById('admin-result');
+    var email = (emailInput.value || '').trim();
+    var amount = parseInt(amountInput.value, 10);
+    if(!email || !amount || amount <= 0){
+      resultEl.textContent = 'Ingresa un correo y una cantidad válida de monedas.';
+      return;
+    }
+    resultEl.textContent = 'Buscando usuario...';
+    findUserByEmail(email).then(function(found){
+      if(!found){
+        resultEl.textContent = 'No se encontró ningún usuario con ese correo.';
+        return;
+      }
+      return found.ref.set({
+        coins: firebase.firestore.FieldValue.increment(amount)
+      }, {merge:true}).then(function(){
+        resultEl.textContent = '✅ Se regalaron ' + amount + ' monedas a ' + email;
+        amountInput.value = '';
+      });
+    }).catch(function(err){
+      console.error(err);
+      resultEl.textContent = 'Ocurrió un error al regalar monedas. Revisa las reglas de Firestore.';
+    });
+  };
+
+  window.adminGiveVip = function(){
+    if(!fbReady() || !currentUser || currentUser.email !== ADMIN_EMAIL) return;
+    var emailInput = document.getElementById('admin-target-email');
+    var resultEl = document.getElementById('admin-result');
+    var email = (emailInput.value || '').trim();
+    if(!email){
+      resultEl.textContent = 'Ingresa el correo del usuario.';
+      return;
+    }
+    resultEl.textContent = 'Buscando usuario...';
+    findUserByEmail(email).then(function(found){
+      if(!found){
+        resultEl.textContent = 'No se encontró ningún usuario con ese correo.';
+        return;
+      }
+      return found.ref.set({ vip: true }, {merge:true}).then(function(){
+        resultEl.textContent = '✅ VIP otorgado a ' + email;
+      });
+    }).catch(function(err){
+      console.error(err);
+      resultEl.textContent = 'Ocurrió un error al otorgar VIP. Revisa las reglas de Firestore.';
+    });
+  };
+
+  function boot(){
+    if(!fbReady()){ setTimeout(boot, 400); return; }
+    auth.onAuthStateChanged(function(user){
+      currentUser = user;
+      var coinsChip = document.getElementById('coins-chip');
+      var adminBtn = document.getElementById('admin-toggle-btn');
+      var adminPanel = document.getElementById('admin-panel');
+      if(user){
+        ensureUserDoc(user);
+        listenToUserDoc(user.uid);
+        if(coinsChip) coinsChip.style.display = 'flex';
+        var isAdmin = user.email === ADMIN_EMAIL;
+        if(adminBtn) adminBtn.style.display = isAdmin ? 'block' : 'none';
+        if(!isAdmin && adminPanel) adminPanel.classList.remove('open');
+      }else{
+        if(unsubscribeUserDoc){ unsubscribeUserDoc(); unsubscribeUserDoc = null; }
+        if(coinsChip) coinsChip.style.display = 'none';
+        if(adminBtn) adminBtn.style.display = 'none';
+        if(adminPanel) adminPanel.classList.remove('open');
+        applyVipUI(false);
+        applyCoinsUI(0, false);
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', boot);
+})();
+</script>
 
 <!-- ===================== MODAL ESTILO "PLAY STORE" AL TOCAR UN JUEGO ===================== -->
 <!-- Este bloque es independiente del código de Firebase de arriba: solo MUEVE el widget -->
