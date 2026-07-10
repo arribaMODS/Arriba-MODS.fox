@@ -1085,10 +1085,27 @@ document.addEventListener('DOMContentLoaded', function(){
 #vip-store-modal .vip-balance{ font-size:12px; color:#94a3b8; margin-top:10px; }
 
 /* Panel de administrador */
+/* NOTA: se reposiciona a la esquina inferior IZQUIERDA y por encima del ticker de
+   redes sociales (fixed, ancho completo, z-index:9999) y de la burbuja del
+   asistente virtual (esquina inferior derecha). Antes el botón y el panel vivían
+   en bottom:16/right:16 con z-index 9997-9998, es decir, por DEBAJO del ticker
+   y en el mismo lugar que el asistente, por lo que quedaban tapados y no se
+   podían pulsar. */
+#admin-toggle-btn{
+  display:none;
+  position:fixed; bottom:70px; left:16px; z-index:10010;
+  background:linear-gradient(135deg,#6d28d9,#4c1d95);
+  color:#fff; border:none; border-radius:30px;
+  padding:10px 16px; font-size:12.5px; font-weight:700; cursor:pointer;
+  box-shadow:0 8px 22px rgba(0,0,0,.4);
+}
 #admin-panel{
   display:none;
-  position:fixed; bottom:16px; right:16px; z-index:9998;
+  position:fixed; bottom:118px; left:16px; z-index:10010;
   width:270px;
+  max-width:calc(100vw - 32px);
+  max-height:calc(100vh - 150px);
+  overflow-y:auto;
   background:linear-gradient(160deg,#1a1035,#0f172a);
   border:1px solid #6d28d9;
   border-radius:16px;
@@ -1098,7 +1115,10 @@ document.addEventListener('DOMContentLoaded', function(){
   box-shadow:0 16px 40px rgba(0,0,0,.5);
 }
 #admin-panel.open{ display:block; }
-#admin-panel h4{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:6px; }
+#admin-panel h4{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+#admin-panel h4 .admin-close{
+  background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer; margin:0; padding:0 4px; width:auto;
+}
 #admin-panel input{
   width:100%; box-sizing:border-box; padding:8px 10px; margin:5px 0;
   border-radius:8px; border:1px solid #334155; background:#0b1220; color:#fff; font-size:12.5px;
@@ -1112,14 +1132,6 @@ document.addEventListener('DOMContentLoaded', function(){
 #admin-coins-btn{ background:#2563eb; color:#fff; }
 #admin-vip-btn{ background:linear-gradient(135deg,#e8b923,#b8860b); color:#2b1c00; }
 #admin-result{ font-size:11.5px; color:#a5b4fc; margin-top:6px; min-height:14px; }
-#admin-toggle-btn{
-  display:none;
-  position:fixed; bottom:16px; right:16px; z-index:9997;
-  background:linear-gradient(135deg,#6d28d9,#4c1d95);
-  color:#fff; border:none; border-radius:30px;
-  padding:10px 16px; font-size:12.5px; font-weight:700; cursor:pointer;
-  box-shadow:0 8px 22px rgba(0,0,0,.4);
-}
 </style>
 
 <div id="fb-auth-bar">
@@ -1177,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ===== PANEL DE ADMINISTRADOR ===== -->
 <button id="admin-toggle-btn" onclick="adminTogglePanel()">🛠️ Panel Admin</button>
 <div id="admin-panel">
-  <h4>🛠️ Panel de administrador</h4>
+  <h4>🛠️ Panel de administrador <button class="admin-close" onclick="adminTogglePanel()">✕</button></h4>
   <input type="email" id="admin-target-email" placeholder="Correo del usuario">
   <div class="admin-row">
     <input type="number" id="admin-coins-input" placeholder="Cantidad" min="1">
@@ -1539,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!doc.exists){
         ref.set({
           displayName: user.displayName,
-          email: user.email,
+          email: (user.email || '').toLowerCase(),
           photoURL: user.photoURL,
           coins: 0,
           vip: false,
@@ -1550,6 +1562,7 @@ document.addEventListener('DOMContentLoaded', function(){
         var patch = {};
         if(typeof data.coins !== 'number') patch.coins = 0;
         if(typeof data.vip !== 'boolean') patch.vip = false;
+        if(user.email && data.email !== user.email.toLowerCase()) patch.email = user.email.toLowerCase();
         if(Object.keys(patch).length) ref.set(patch, {merge:true});
       }
     }).catch(function(err){ console.error(err); });
@@ -1602,6 +1615,7 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   function findUserByEmail(email){
+    email = (email || '').trim().toLowerCase();
     return db.collection('users').where('email','==', email).limit(1).get().then(function(snap){
       if(snap.empty) return null;
       var d = snap.docs[0];
